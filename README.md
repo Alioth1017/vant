@@ -71,18 +71,25 @@ Vant 2 supports modern browsers and Android >= 4.0、iOS >= 8.0.
 
 Vant 3 supports modern browsers and Chrome >= 51、iOS >= 10.0 (same as Vue 3).
 
-## Ecosystem
+## Official Ecosystem
 
 | Project | Description |
 | --- | --- |
 | [vant-weapp](https://github.com/youzan/vant-weapp) | WeChat MiniProgram UI |
-| [vant-aliapp](https://github.com/ant-move/Vant-Aliapp) | Alipay MiniProgram UI (maintained by the community) |
-| [vant-react](https://github.com/mxdi9i7/vant-react) | Vant React (maintained by the community) |
-| [vant-use](https://youzan.github.io/vant/vant-use/) | Collection of Vant Composition APIs |
 | [vant-demo](https://github.com/youzan/vant-demo) | Collection of Vant demos |
 | [vant-cli](https://github.com/youzan/vant/tree/dev/packages/vant-cli) | Scaffold for UI library |
 | [vant-icons](https://github.com/youzan/vant/tree/dev/packages/vant-icons) | Vant icons |
 | [vant-touch-emulator](https://github.com/youzan/vant/tree/dev/packages/vant-touch-emulator) | Using vant in desktop browsers |
+
+## Community Ecosystem
+
+| Project | Description |
+| --- | --- |
+| [3lang3/react-vant](https://github.com/3lang3/react-vant) | React mobile UI Components base on Vant |
+| [mxdi9i7/vant-react](https://github.com/mxdi9i7/vant-react) | Mobile UI Components built on React and TS, inspired by Vant |
+| [vant-aliapp](https://github.com/ant-move/Vant-Aliapp) | Alipay MiniProgram UI |
+| [taroify](https://gitee.com/mallfoundry/taroify) | Vant Taro |
+| [vant-theme](https://github.com/Aisen60/vant-theme) | online theme preview built on Vant UI |
 
 ## Links
 

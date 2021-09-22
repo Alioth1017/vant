@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   name: 'vant-icon',
   basic: [
     'arrow',
@@ -147,6 +147,8 @@ module.exports = {
     'idcard',
     'replay',
     'shrink',
+    'shield-o',
+    'guide-o',
   ],
   filled: [
     // has corresponding outline icon
@@ -235,7 +237,7 @@ module.exports = {
     'audio',
     'graphic',
     'column',
-    'invition',
+    'invitation',
     'play',
     'pause',
     'stop',

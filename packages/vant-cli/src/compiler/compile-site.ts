@@ -1,76 +1,44 @@
-import chalk from 'chalk';
-import address from 'address';
-import webpack from 'webpack';
-import WebpackDevServer from 'webpack-dev-server';
-import { get } from 'lodash';
-import { getPort } from 'portfinder';
-import { GREEN } from '../common/constant';
-import { getSiteDevConfig } from '../config/webpack.site.dev';
-import { getSitePrdConfig } from '../config/webpack.site.prd';
+import { createServer, build } from 'vite';
+import {
+  getViteConfigForSiteDev,
+  getViteConfigForSiteProd,
+} from '../config/vite.site';
+import { replaceExt } from '../common';
+import { CSS_LANG } from '../common/css';
+import { genPackageEntry } from './gen-package-entry';
+import { genPackageStyle } from './gen-package-style';
+import { genSiteMobileShared } from './gen-site-mobile-shared';
+import { genSiteDesktopShared } from './gen-site-desktop-shared';
+import { genStyleDepsMap } from './gen-style-deps-map';
+import { PACKAGE_ENTRY_FILE, PACKAGE_STYLE_FILE } from '../common/constant';
 
-function logServerInfo(port: number) {
-  const local = `http://localhost:${port}/`;
-  const network = `http://${address.ip()}:${port}/`;
-
-  console.log('\n  Site running at:\n');
-  console.log(`  ${chalk.bold('Local')}:    ${chalk.hex(GREEN)(local)} `);
-  console.log(`  ${chalk.bold('Network')}:  ${chalk.hex(GREEN)(network)}`);
-}
-
-function runDevServer(
-  port: number,
-  config: ReturnType<typeof getSiteDevConfig>
-) {
-  const server = new WebpackDevServer(webpack(config), config.devServer);
-
-  // this is a hack to disable wds status log
-  (server as any).showStatus = function () {};
-
-  const host = get(config.devServer, 'host', 'localhost');
-  server.listen(port, host, (err?: Error) => {
-    if (err) {
-      console.log(err);
-    }
-  });
-}
-
-function watch() {
-  const config = getSiteDevConfig();
-
-  getPort(
-    {
-      port: config.devServer!.port,
-    },
-    (err, port) => {
-      if (err) {
-        console.log(err);
-        return;
-      }
-
-      logServerInfo(port);
-      runDevServer(port, config);
-    }
-  );
-}
-
-function build() {
-  return new Promise<void>((resolve, reject) => {
-    const config = getSitePrdConfig();
-
-    webpack(config, (err, stats) => {
-      if (err || (stats && stats.hasErrors())) {
-        reject();
-      } else {
+export async function genSiteEntry(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    genStyleDepsMap()
+      .then(() => {
+        genPackageEntry({
+          outputPath: PACKAGE_ENTRY_FILE,
+        });
+        genPackageStyle({
+          outputPath: replaceExt(PACKAGE_STYLE_FILE, `.${CSS_LANG}`),
+        });
+        genSiteMobileShared();
+        genSiteDesktopShared();
         resolve();
-      }
-    });
+      })
+      .catch((err) => {
+        console.log(err);
+        reject(err);
+      });
   });
 }
 
 export async function compileSite(production = false) {
+  await genSiteEntry();
   if (production) {
-    await build();
+    await build(getViteConfigForSiteProd());
   } else {
-    watch();
+    const server = await createServer(getViteConfigForSiteDev());
+    await server.listen();
   }
 }

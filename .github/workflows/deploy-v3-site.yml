@@ -2,8 +2,9 @@ name: Deploy V3 Site
 
 on:
   push:
-    tags:
-      - 'v3*' # Push events to matching v*, i.e. v1.0, v20.15.10
+    branches: [dev]
+    paths:
+      - 'docs/**'
 
 jobs:
   build-and-deploy:
@@ -18,11 +19,11 @@ jobs:
         uses: bahmutov/npm-install@v1
 
       - name: Build Site
-        run: npx --no-install vant-cli build-site
+        run: npm run build:site
 
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@4.1.1
         with:
           branch: gh-pages
-          folder: site
+          folder: packages/vant/site
           target-folder: v3

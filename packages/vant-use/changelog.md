@@ -1,5 +1,31 @@
 # 更新日志
 
+### v1.3.1
+
+- 移除 requestAnimationFrame 的 polyfill
+
+### v1.3.0
+
+- 新增 `useCustomFieldValue` 方法
+
+### v1.2.2
+
+`2021-07-22`
+
+- `useEventListener`: 修复 `invalid watch source` 问题
+
+### v1.2.1
+
+`2021-07-21`
+
+- `useEventListener` 现在会监听 target 的变化，并重新监听事件
+
+### v1.2.0
+
+`2021-07-12`
+
+- 调整 `useParent` 和 `useChildren` 的类型定义
+
 ### v1.1.2
 
 `2021-04-22`

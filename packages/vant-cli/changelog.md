@@ -1,5 +1,97 @@
 # 更新日志
 
+## v4.0.0-beta.6
+
+### 不兼容更新
+
+- 使用 vite 代替 webpack 进行构建，移除了所有 webpack 相关依赖
+- 站点构建产物的目录由 `site` 调整为 `site-dist`
+- 不再支持 webpack.config.js 配置文件
+- 不再支持 less import 语法中使用波浪号
+- 不再在 demo 文件中自动注册组件
+- 移除 build 命令的 --watch 参数
+- 移除内置的 babel-plugin-import 插件
+- 由于不再使用 html-webpack-plugin, 因此移除了 site.htmlPluginOptions 配置项
+- 为了减少依赖数量，移除了默认安装的 sass 依赖，使用 sass 时需要手动安装：
+
+```bash
+yarn add sass
+```
+
+### Features
+
+- 新增 site.htmlMeta 配置项
+- 新增 ESModule 格式的构建产物，分别为 `lib/[name].es.js` 和 `lib/[name].es.min.js`
+
+### 依赖升级
+
+对以下依赖进行了大版本升级：
+
+- jest v27
+- husky v7
+- ts-jest v27
+- postcss v8
+- clean-css v5
+- commander v8
+- babel-jest v27
+- lint-staged v11
+- autoprefixer v10
+
+## v3.11.2
+
+`2021-07-15`
+
+- test 命令支持更多 jest 参数
+
+## v3.11.1
+
+`2021-07-08`
+
+- 支持 commit message 以 `release` 为前缀
+
+## v3.11.0
+
+`2021-06-25`
+
+- 构建时保留静态资源
+
+## v3.10.9
+
+`2021-06-24`
+
+- 降级 prettier 版本到 2.1.0
+
+## v3.10.8
+
+`2021-06-23`
+
+- 修复 sfc 编译 defineComponent 错误的问题
+
+## v3.10.7
+
+`2021-06-23`
+
+- 支持自定义 autoprefixer 插件
+
+## v3.10.6
+
+`2021-06-11`
+
+- 修复文档样式问题
+- 升级依赖版本
+
+## v3.10.5
+
+`2021-06-06`
+
+- 修复预览桌面端组件时样式污染问题
+
+## v3.10.3
+
+`2021-04-29`
+
+- windows 系统禁用左右方向键导航
+
 ## v3.10.2
 
 `2021-04-19`

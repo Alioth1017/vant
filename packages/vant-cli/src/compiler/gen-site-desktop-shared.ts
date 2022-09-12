@@ -1,20 +1,18 @@
 import glob from 'fast-glob';
 import { join, parse } from 'path';
-import { existsSync, readdirSync } from 'fs-extra';
+import { existsSync, readFileSync, readdirSync } from 'fs';
 import {
+  isDev,
   pascalize,
-  removeExt,
   getVantConfig,
-  smartOutputFile,
   normalizePath,
-} from '../common';
+} from '../common/index.js';
 import {
   SRC_DIR,
   DOCS_DIR,
   getPackageJson,
   VANT_CONFIG_FILE,
-  SITE_DESKTOP_SHARED_FILE,
-} from '../common/constant';
+} from '../common/constant.js';
 
 type DocumentItem = {
   name: string;
@@ -80,7 +78,13 @@ function resolveDocuments(components: string[]): DocumentItem[] {
 
 function genImportDocuments(items: DocumentItem[]) {
   return items
-    .map((item) => `import ${item.name} from '${normalizePath(item.path)}';`)
+    .map((item) => {
+      const path = normalizePath(item.path);
+      if (isDev()) {
+        return `const ${item.name} = () => import('${path}');`;
+      }
+      return `import ${item.name} from '${path}';`;
+    })
     .join('\n');
 }
 
@@ -90,8 +94,9 @@ function genExportDocuments(items: DocumentItem[]) {
 };`;
 }
 
-function genImportConfig() {
-  return `import config from '${removeExt(normalizePath(VANT_CONFIG_FILE))}';`;
+function genVantConfigContent() {
+  const content = readFileSync(VANT_CONFIG_FILE, 'utf-8');
+  return content.replace('export default', 'const config =');
 }
 
 function genExportConfig() {
@@ -102,27 +107,18 @@ function genExportVersion() {
   return `export const packageVersion = '${getPackageJson().version}';`;
 }
 
-function genInstall() {
-  return `import './package-style';`;
-}
-
-function genExportPackageEntry() {
-  return `export { default as packageEntry } from './package-entry';`;
-}
-
 export function genSiteDesktopShared() {
   const dirs = readdirSync(SRC_DIR);
   const documents = resolveDocuments(dirs);
 
-  const code = `${genImportConfig()}
-${genInstall()}
-${genImportDocuments(documents)}
+  const code = `${genImportDocuments(documents)}
 
-${genExportPackageEntry()}
+${genVantConfigContent()}
+
 ${genExportConfig()}
 ${genExportDocuments(documents)}
 ${genExportVersion()}
 `;
 
-  smartOutputFile(SITE_DESKTOP_SHARED_FILE, code);
+  return code;
 }

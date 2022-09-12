@@ -1,13 +1,19 @@
-import hash from 'hash-sum';
+import fse from 'fs-extra';
 import path from 'path';
-import { parse, SFCBlock, compileTemplate } from '@vue/compiler-sfc';
-import { remove, writeFileSync, readFileSync } from 'fs-extra';
-import { replaceExt } from '../common';
-import { compileJs } from './compile-js';
-import { compileStyle } from './compile-style';
+import hash from 'hash-sum';
+import {
+  parse,
+  SFCBlock,
+  compileTemplate,
+  compileScript,
+} from 'vue/compiler-sfc';
+import { replaceExt } from '../common/index.js';
+
+const { remove, readFileSync, outputFile } = fse;
 
 const RENDER_FN = '__vue_render__';
-const EXPORT = 'export default {';
+const VUEIDS = '__vue_sfc__';
+const EXPORT = 'export default';
 
 // trim some unused code
 function trim(code: string) {
@@ -25,14 +31,14 @@ function injectRender(script: string, render: string) {
 
   render = render.replace('export function render', `function ${RENDER_FN}`);
 
-  return script.replace(
-    EXPORT,
-    `${render}\n${EXPORT}\n  render: ${RENDER_FN},\n`
-  );
+  script += `\n${render}\n${VUEIDS}.render = ${RENDER_FN} \n`;
+
+  return script;
 }
 
 function injectScopeId(script: string, scopeId: string) {
-  return script.replace(EXPORT, `${EXPORT}\n  _scopeId: '${scopeId}',\n\n`);
+  script += `\n${VUEIDS}._scopeId = '${scopeId}'`;
+  return script;
 }
 
 function injectStyle(script: string, styles: SFCBlock[], filePath: string) {
@@ -44,7 +50,9 @@ function injectStyle(script: string, styles: SFCBlock[], filePath: string) {
       })
       .join('\n');
 
-    return script.replace(EXPORT, `${imports}\n\n${EXPORT}`);
+    script = `${imports}\n${script}`;
+
+    return script;
   }
 
   return script;
@@ -63,27 +71,46 @@ export async function compileSfc(filePath: string): Promise<any> {
   const tasks = [remove(filePath)];
   const source = readFileSync(filePath, 'utf-8');
   const descriptor = parseSfc(filePath);
+
   const { template, styles } = descriptor;
 
   const hasScoped = styles.some((s) => s.scoped);
   const scopeId = hasScoped ? `data-v-${hash(source)}` : '';
 
   // compile js part
-  if (descriptor.script) {
-    const lang = descriptor.script.lang || 'js';
+  if (descriptor.script || descriptor.scriptSetup) {
+    const lang =
+      descriptor.script?.lang || descriptor.scriptSetup?.lang || 'js';
     const scriptFilePath = replaceExt(filePath, `.${lang}`);
 
     tasks.push(
-      new Promise((resolve, reject) => {
-        let script = descriptor.script!.content;
+      new Promise((resolve) => {
+        let script = '';
+
+        let bindingMetadata;
+        if (descriptor.scriptSetup) {
+          const { bindings, content } = compileScript(descriptor, {
+            id: scopeId,
+          });
+          script += content;
+          bindingMetadata = bindings;
+        } else {
+          script += descriptor.script!.content;
+        }
+
         script = injectStyle(script, styles, filePath);
+        script = script.replace(EXPORT, `const ${VUEIDS} =`);
 
         if (template) {
           const render = compileTemplate({
             id: scopeId,
             source: template.content,
             filename: filePath,
+            compilerOptions: {
+              bindingMetadata,
+            },
           }).code;
+
           script = injectRender(script, render);
         }
 
@@ -91,15 +118,22 @@ export async function compileSfc(filePath: string): Promise<any> {
           script = injectScopeId(script, scopeId);
         }
 
-        writeFileSync(scriptFilePath, script);
-        compileJs(scriptFilePath).then(resolve).catch(reject);
+        script += `\n${EXPORT} ${VUEIDS}`;
+
+        // ts-nocheck should be placed on the first line
+        // the generated render fn lacks type definitions
+        if (lang === 'ts') {
+          script = '// @ts-nocheck\n' + script;
+        }
+
+        outputFile(scriptFilePath, script).then(resolve);
       })
     );
   }
 
   // compile style part
   tasks.push(
-    ...styles.map((style, index: number) => {
+    ...styles.map(async (style, index: number) => {
       const cssFilePath = getSfcStylePath(filePath, style.lang || 'css', index);
 
       const styleSource = trim(style.content);
@@ -115,9 +149,7 @@ export async function compileSfc(filePath: string): Promise<any> {
       //   }).code;
       // }
 
-      writeFileSync(cssFilePath, styleSource);
-
-      return compileStyle(cssFilePath);
+      return outputFile(cssFilePath, styleSource);
     })
   );
 

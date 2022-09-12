@@ -4,9 +4,6 @@ module.exports = {
     'airbnb-base',
     'plugin:@typescript-eslint/recommended',
     'prettier',
-    'prettier/vue',
-    'prettier/@typescript-eslint',
-    'plugin:markdown/recommended',
   ],
 
   parserOptions: {
@@ -54,6 +51,8 @@ module.exports = {
     'vue/require-v-for-key': 'off',
     'vue/require-default-prop': 'off',
     'vue/no-unused-components': 'off',
+    'vue/multi-word-component-names': 'off',
+    'vue/return-in-computed-property': 'off',
     // typescript-eslint
     '@typescript-eslint/camelcase': 'off',
     '@typescript-eslint/ban-ts-comment': 'off',

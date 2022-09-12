@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   name: 'vant-icon',
   basic: [
     'arrow',
@@ -147,6 +147,11 @@ module.exports = {
     'idcard',
     'replay',
     'shrink',
+    'shield-o',
+    'guide-o',
+    'cash-o',
+    'link-o',
+    'miniprogram-o',
   ],
   filled: [
     // has corresponding outline icon
@@ -221,7 +226,10 @@ module.exports = {
     // without corresponding outline icon
     'wechat',
     'wechat-pay',
+    'wechat-moments',
+    'qq',
     'alipay',
+    'weibo',
     'photograph',
     'youzan-shield',
     'umbrella-circle',
@@ -235,7 +243,7 @@ module.exports = {
     'audio',
     'graphic',
     'column',
-    'invition',
+    'invitation',
     'play',
     'pause',
     'stop',

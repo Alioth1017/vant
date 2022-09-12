@@ -1,17 +1,19 @@
-import { join } from 'path';
-import { ROOT } from '../common/constant';
-import { ora, slimPath } from '../common/logger';
-import { createWriteStream, readFileSync } from 'fs-extra';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { ROOT } from '../common/constant.js';
+import { createSpinner, slimPath } from '../common/logger.js';
+import { createWriteStream, readFileSync } from 'fs';
 import conventionalChangelog from 'conventional-changelog';
 
 const DIST_FILE = join(ROOT, './changelog.generated.md');
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const MAIN_TEMPLATE = join(__dirname, '../../template/changelog-main.hbs');
-const HEADER_TEMPALTE = join(__dirname, '../../template/changelog-header.hbs');
-const COMMIT_TEMPALTE = join(__dirname, '../../template/changelog-commit.hbs');
+const HEADER_TEMPLATE = join(__dirname, '../../template/changelog-header.hbs');
+const COMMIT_TEMPLATE = join(__dirname, '../../template/changelog-commit.hbs');
 
 const mainTemplate = readFileSync(MAIN_TEMPLATE, 'utf-8');
-const headerPartial = readFileSync(HEADER_TEMPALTE, 'utf-8');
-const commitPartial = readFileSync(COMMIT_TEMPALTE, 'utf-8');
+const headerPartial = readFileSync(HEADER_TEMPLATE, 'utf-8');
+const commitPartial = readFileSync(COMMIT_TEMPLATE, 'utf-8');
 
 function formatType(type: string) {
   const MAP: Record<string, string> = {
@@ -46,12 +48,13 @@ function transform(item: any) {
 }
 
 export async function changelog(): Promise<void> {
-  const spinner = ora('Generating changelog...').start();
+  const spinner = createSpinner('Generating changelog...').start();
 
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     conventionalChangelog(
       {
         preset: 'angular',
+        releaseCount: 2,
       },
       null,
       null,
@@ -65,7 +68,9 @@ export async function changelog(): Promise<void> {
     )
       .pipe(createWriteStream(DIST_FILE))
       .on('close', () => {
-        spinner.succeed(`Changelog generated at ${slimPath(DIST_FILE)}`);
+        spinner.success({
+          text: `Changelog generated at ${slimPath(DIST_FILE)}`,
+        });
         resolve();
       });
   });

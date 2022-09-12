@@ -5,6 +5,7 @@
       :config="config"
       :versions="versions"
       :lang-configs="langConfigs"
+      :dark-mode-class="darkModeClass"
       @switch-version="$emit('switch-version', $event)"
     />
     <doc-nav :lang="lang" :nav-config="config.nav" />
@@ -18,11 +19,11 @@
 </template>
 
 <script>
-import DocNav from './Nav';
-import DocHeader from './Header';
-import DocContent from './Content';
-import DocContainer from './Container';
-import DocSimulator from './Simulator';
+import DocNav from './Nav.vue';
+import DocHeader from './Header.vue';
+import DocContent from './Content.vue';
+import DocContainer from './Container.vue';
+import DocSimulator from './Simulator.vue';
 
 export default {
   name: 'VanDoc',
@@ -39,8 +40,9 @@ export default {
     lang: String,
     versions: Array,
     simulator: String,
-    hasSimulator: Boolean,
     langConfigs: Array,
+    hasSimulator: Boolean,
+    darkModeClass: String,
     config: {
       type: Object,
       required: true,
@@ -108,7 +110,3 @@ export default {
   },
 };
 </script>
-
-<style lang="less">
-@import '../../common/style/var';
-</style>

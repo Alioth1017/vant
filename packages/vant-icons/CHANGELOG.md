@@ -1,5 +1,36 @@
 ## Changelog
 
+## 1.8.0
+
+- add qq icon
+- add weibo icon
+- add link-o icon
+- add miniprogram-o icon
+- add wechat-moments icon
+
+## 1.7.3
+
+- complete https protocol
+
+## 1.7.2
+
+- add cash-o icon
+
+## 1.7.1
+
+- add guide-o icon
+- config.js now is esmodule
+
+## 1.7.0
+
+- add shield-o icon
+- fix invitation typo
+- deprecate encode.less
+
+## 1.6.0
+
+- migrate all icons to iconfont.cn
+
 ## 1.5.3
 
 - add config type definition

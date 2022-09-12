@@ -2,17 +2,12 @@
   "compilerOptions": {
     "baseUrl": ".",
     "jsx": "preserve",
-    "target": "ES2019",
-    "module": "ESNext",
     "strict": true,
-    "allowJs": true,
+    "target": "ES2015",
+    "module": "ESNext",
     "skipLibCheck": true,
-    "noImplicitThis": true,
     "esModuleInterop": true,
-    "moduleResolution": "node",
-    "paths": {
-      "@demo/*": ["docs/site/*"]
-    }
-  },
-  "include": ["src/**/*", "types/**/*", "docs/**/*", "test/**/*"]
+    "moduleResolution": "Node",
+    "lib": ["esnext", "dom"]
+  }
 }

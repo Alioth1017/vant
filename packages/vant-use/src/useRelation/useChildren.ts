@@ -3,6 +3,7 @@ import {
   isVNode,
   provide,
   reactive,
+  InjectionKey,
   getCurrentInstance,
   VNodeNormalizedChildren,
   ComponentPublicInstance,
@@ -19,6 +20,7 @@ export function flattenVNodes(children: VNodeNormalizedChildren) {
           result.push(child);
 
           if (child.component?.subTree) {
+            result.push(child.component.subTree);
             traverse(child.component.subTree.children);
           }
 
@@ -57,13 +59,15 @@ export function sortChildren(
 }
 
 export function useChildren<
-  Child extends ComponentPublicInstance = ComponentPublicInstance
->(key: string | symbol) {
+  // eslint-disable-next-line
+  Child extends ComponentPublicInstance = ComponentPublicInstance<{}, any>,
+  ProvideValue = never
+>(key: InjectionKey<ProvideValue>) {
   const publicChildren: Child[] = reactive([]);
   const internalChildren: ComponentInternalInstance[] = reactive([]);
   const parent = getCurrentInstance()!;
 
-  const linkChildren = (value?: any) => {
+  const linkChildren = (value?: ProvideValue) => {
     const link = (child: ComponentInternalInstance) => {
       if (child.proxy) {
         internalChildren.push(child);

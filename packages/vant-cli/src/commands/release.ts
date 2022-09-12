@@ -1,7 +1,9 @@
 /* eslint-disable no-template-curly-in-string */
 import releaseIt from 'release-it';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const PLUGIN_PATH = join(__dirname, '../compiler/vant-cli-release-plugin.js');
 
 export async function release(command: { tag?: string }) {
@@ -14,7 +16,7 @@ export async function release(command: { tag?: string }) {
     },
     git: {
       tagName: 'v${version}',
-      commitMessage: 'chore: release ${version}',
+      commitMessage: 'release: ${version}',
     },
   });
 }

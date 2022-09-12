@@ -1,29 +1,25 @@
-import { Ref, unref, onUnmounted, onDeactivated } from 'vue';
+import { Ref, watch, isRef, unref, onUnmounted, onDeactivated } from 'vue';
 import { onMountedOrActivated } from '../onMountedOrActivated';
 import { inBrowser } from '../utils';
 
-// eslint-disable-next-line
-export let supportsPassive = false;
-
-if (inBrowser) {
-  try {
-    const opts = {};
-    Object.defineProperty(opts, 'passive', {
-      get() {
-        supportsPassive = true;
-      },
-    });
-    window.addEventListener('test-passive', null as any, opts);
-    // eslint-disable-next-line no-empty
-  } catch (e) {}
-}
+type TargetRef = EventTarget | Ref<EventTarget | undefined>;
 
 export type UseEventListenerOptions = {
-  target?: EventTarget | Ref<EventTarget | undefined>;
+  target?: TargetRef;
   capture?: boolean;
   passive?: boolean;
 };
 
+export function useEventListener<K extends keyof DocumentEventMap>(
+  type: K,
+  listener: (event: DocumentEventMap[K]) => void,
+  options?: UseEventListenerOptions
+): void;
+export function useEventListener(
+  type: string,
+  listener: EventListener,
+  options?: UseEventListenerOptions
+): void;
 export function useEventListener(
   type: string,
   listener: EventListener,
@@ -37,20 +33,19 @@ export function useEventListener(
 
   let attached: boolean;
 
-  const add = () => {
+  const add = (target?: TargetRef) => {
     const element = unref(target);
 
     if (element && !attached) {
-      element.addEventListener(
-        type,
-        listener,
-        supportsPassive ? { capture, passive } : capture
-      );
+      element.addEventListener(type, listener, {
+        capture,
+        passive,
+      });
       attached = true;
     }
   };
 
-  const remove = () => {
+  const remove = (target?: TargetRef) => {
     const element = unref(target);
 
     if (element && attached) {
@@ -59,7 +54,14 @@ export function useEventListener(
     }
   };
 
-  onUnmounted(remove);
-  onDeactivated(remove);
-  onMountedOrActivated(add);
+  onUnmounted(() => remove(target));
+  onDeactivated(() => remove(target));
+  onMountedOrActivated(() => add(target));
+
+  if (isRef(target)) {
+    watch(target, (val, oldVal) => {
+      remove(oldVal);
+      add(val);
+    });
+  }
 }

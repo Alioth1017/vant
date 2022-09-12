@@ -1,24 +1,24 @@
+import fse from 'fs-extra';
 import execa from 'execa';
-import chokidar from 'chokidar';
 import { join, relative } from 'path';
-import { remove, copy, readdirSync, existsSync } from 'fs-extra';
-import { clean } from './clean';
-import { CSS_LANG } from '../common/css';
-import { ora, consola, slimPath } from '../common/logger';
-import { installDependencies } from '../common/manager';
-import { compileJs } from '../compiler/compile-js';
-import { compileSfc } from '../compiler/compile-sfc';
-import { compileStyle } from '../compiler/compile-style';
-import { compilePackage } from '../compiler/compile-package';
-import { genPackageEntry } from '../compiler/gen-package-entry';
-import { genStyleDepsMap } from '../compiler/gen-style-deps-map';
-import { genComponentStyle } from '../compiler/gen-component-style';
-import { SRC_DIR, LIB_DIR, ES_DIR } from '../common/constant';
-import { genPackageStyle } from '../compiler/gen-package-style';
-import { genVeturConfig } from '../compiler/gen-vetur-config';
+import { clean } from './clean.js';
+import { CSS_LANG } from '../common/css.js';
+import { createSpinner, consola } from '../common/logger.js';
+import { installDependencies } from '../common/manager.js';
+import { compileSfc } from '../compiler/compile-sfc.js';
+import { compileStyle } from '../compiler/compile-style.js';
+import { compileScript } from '../compiler/compile-script.js';
+import { compileBundles } from '../compiler/compile-bundles.js';
+import { genPackageEntry } from '../compiler/gen-package-entry.js';
+import { genStyleDepsMap } from '../compiler/gen-style-deps-map.js';
+import { genComponentStyle } from '../compiler/gen-component-style.js';
+import { SRC_DIR, LIB_DIR, ES_DIR, getVantConfig } from '../common/constant.js';
+import { genPackageStyle } from '../compiler/gen-package-style.js';
+import { genWebStormTypes } from '../compiler/web-types/index.js';
 import {
   isDir,
   isSfc,
+  isAsset,
   isStyle,
   isScript,
   isDemoDir,
@@ -26,26 +26,31 @@ import {
   setNodeEnv,
   setModuleEnv,
   setBuildTarget,
-} from '../common';
+} from '../common/index.js';
+import type { Format } from 'esbuild';
 
-async function compileFile(filePath: string) {
-  if (isSfc(filePath)) {
-    return compileSfc(filePath);
-  }
+const { remove, copy, readdir, existsSync } = fse;
 
+async function compileFile(filePath: string, format: Format) {
   if (isScript(filePath)) {
-    return compileJs(filePath);
+    return compileScript(filePath, format);
   }
-
   if (isStyle(filePath)) {
     return compileStyle(filePath);
   }
-
+  if (isAsset(filePath)) {
+    return Promise.resolve();
+  }
   return remove(filePath);
 }
 
-async function compileDir(dir: string) {
-  const files = readdirSync(dir);
+/**
+ * Pre-compile
+ * 1. Remove unneeded dirs
+ * 2. compile sfc into scripts/styles
+ */
+async function preCompileDir(dir: string) {
+  const files = await readdir(dir);
 
   await Promise.all(
     files.map((filename) => {
@@ -54,34 +59,48 @@ async function compileDir(dir: string) {
       if (isDemoDir(filePath) || isTestDir(filePath)) {
         return remove(filePath);
       }
-
       if (isDir(filePath)) {
-        return compileDir(filePath);
+        return preCompileDir(filePath);
       }
+      if (isSfc(filePath)) {
+        return compileSfc(filePath);
+      }
+      return Promise.resolve();
+    })
+  );
+}
 
-      return compileFile(filePath);
+async function compileDir(dir: string, format: Format) {
+  const files = await readdir(dir);
+  await Promise.all(
+    files.map((filename) => {
+      const filePath = join(dir, filename);
+      return isDir(filePath)
+        ? compileDir(filePath, format)
+        : compileFile(filePath, format);
     })
   );
 }
 
 async function copySourceCode() {
-  await copy(SRC_DIR, ES_DIR);
-  await copy(SRC_DIR, LIB_DIR);
+  return Promise.all([copy(SRC_DIR, ES_DIR), copy(SRC_DIR, LIB_DIR)]);
 }
 
 async function buildESMOutputs() {
   setModuleEnv('esmodule');
   setBuildTarget('package');
-  await compileDir(ES_DIR);
+  await compileDir(ES_DIR, 'esm');
 }
 
 async function buildCJSOutputs() {
   setModuleEnv('commonjs');
   setBuildTarget('package');
-  await compileDir(LIB_DIR);
+  await compileDir(LIB_DIR, 'cjs');
 }
 
 async function buildTypeDeclarations() {
+  await Promise.all([preCompileDir(ES_DIR), preCompileDir(LIB_DIR)]);
+
   const tsConfig = join(process.cwd(), 'tsconfig.declaration.json');
 
   if (existsSync(tsConfig)) {
@@ -116,10 +135,10 @@ async function buildPackageStyleEntry() {
 }
 
 async function buildBundledOutputs() {
+  const config = getVantConfig();
   setModuleEnv('esmodule');
-  await compilePackage(false);
-  await compilePackage(true);
-  genVeturConfig();
+  await compileBundles();
+  genWebStormTypes(config.build?.tagPrefix);
 }
 
 const tasks = [
@@ -160,14 +179,14 @@ const tasks = [
 async function runBuildTasks() {
   for (let i = 0; i < tasks.length; i++) {
     const { task, text } = tasks[i];
-    const spinner = ora(text).start();
+    const spinner = createSpinner(text).start();
 
     try {
       /* eslint-disable no-await-in-loop */
       await task();
-      spinner.succeed(text);
+      spinner.success({ text });
     } catch (err) {
-      spinner.fail(text);
+      spinner.error({ text });
       console.log(err);
       throw err;
     }
@@ -176,44 +195,13 @@ async function runBuildTasks() {
   consola.success('Compile successfully');
 }
 
-function watchFileChange() {
-  consola.info('Watching file changes...');
-
-  chokidar.watch(SRC_DIR).on('change', async (path) => {
-    if (isDemoDir(path) || isTestDir(path)) {
-      return;
-    }
-
-    const spinner = ora('File changed, start compilation...').start();
-    const esPath = path.replace(SRC_DIR, ES_DIR);
-    const libPath = path.replace(SRC_DIR, LIB_DIR);
-
-    try {
-      await copy(path, esPath);
-      await copy(path, libPath);
-      await compileFile(esPath);
-      await compileFile(libPath);
-      await genStyleDepsMap();
-      genComponentStyle({ cache: false });
-      spinner.succeed('Compiled: ' + slimPath(path));
-    } catch (err) {
-      spinner.fail('Compile failed: ' + path);
-      console.log(err);
-    }
-  });
-}
-
-export async function build(cmd: { watch?: boolean } = {}) {
+export async function build() {
   setNodeEnv('production');
 
   try {
     await clean();
     await installDependencies();
     await runBuildTasks();
-
-    if (cmd.watch) {
-      watchFileChange();
-    }
   } catch (err) {
     consola.error('Build failed');
     process.exit(1);
